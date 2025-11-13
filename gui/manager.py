@@ -56,13 +56,15 @@ class GUIManager:
 
     def _load_apps(self):
         apps = self.mongo_manager.get_process_windows()
-        print(f"[UI] Caricato {len(apps)} processi.")
         for i, app in enumerate(apps, start=1):
             if app["process"] not in self.config.PROCESS_BLACKLIST:
-                self._add_process_row(i, app)
+                self.add_process_row(i, app)
 
-    def _add_process_row(self, row: int, app: Dict):
+    def add_process_row(self, row: int, app: Dict):
         """Aggiunge una riga per un processo"""
+        if app["_id"] in self.indicators:
+            return  # già presente, esci
+
         level = app.get("level", 5)
 
         # Indicatore stato

@@ -19,8 +19,9 @@ def main():
     # Inizializza componenti
     db_manager = DatabaseManager(config.DB_PATH)
     mongo_manager = MongoSyncManager(config)
-    tracker = ActivityTracker(config, db_manager, mongo_manager)
     gui_manager = GUIManager(config, mongo_manager)
+    mongo_manager = MongoSyncManager(config, gui_manager)
+    tracker = ActivityTracker(config, db_manager, mongo_manager)
 
     # Sincronizza device
     mongo_manager.sync_device()

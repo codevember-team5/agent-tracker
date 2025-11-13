@@ -49,6 +49,8 @@ class WindowDetector:
                 if url:
                     match = re.search(r"https?://([a-zA-Z0-9.-]+)", url)
                     window_title = match.group(1) if match else url
+                else:
+                    app_name, window_title = "unknown", "Unknown"
         except Exception as e:
             print(f"[WARN] macOS detection failed: {e}")
 
@@ -91,13 +93,11 @@ class WindowDetector:
     @staticmethod
     def _get_domain(url: str) -> str | None:
         try:
-            # Estrae il dominio
             hostname = urlparse(url).hostname
             if not hostname or "." not in hostname:
                 return None
-            # Prende solo dominio di secondo e primo livello
             parts = hostname.split(".")
-            return ".".join(parts[-2:]) if len(parts) >= 2 else None
+            return ".".join(parts[-2:])
         except Exception:
             return None
 

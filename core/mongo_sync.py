@@ -3,15 +3,17 @@
 import pymongo
 from typing import List, Tuple, Dict
 from config.settings import Config
+from pymongo import ReturnDocument
 
 
 class MongoSyncManager:
     """Gestisce la sincronizzazione con MongoDB"""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, gui_manager=None):
         self.config = config
         self.client = pymongo.MongoClient(config.MONGO_URI)
         self.db = self.client[config.MONGO_DB]
+        self.gui = gui_manager
         self._init_indexes()
 
     def _init_indexes(self):
@@ -66,7 +68,7 @@ class MongoSyncManager:
                 if doc["process"] in self.config.PROCESS_BLACKLIST:
                     continue
 
-                self.db[self.config.PROCESS_WINDOW_TABLE].update_one(
+                result = self.db[self.config.PROCESS_WINDOW_TABLE].find_one_and_update(
                     {
                         "device_id": doc["device_id"],
                         "process": doc["process"],
@@ -82,7 +84,13 @@ class MongoSyncManager:
                         }
                     },
                     upsert=True,
+                    return_document=ReturnDocument.AFTER,
                 )
+
+                if self.gui:
+                    row = len(self.gui.indicators) + 1
+                    self.gui.add_process_row(row, result)
+
             except Exception as e:
                 print(f"[PROCESS UPSERT ERROR] {e}")
 

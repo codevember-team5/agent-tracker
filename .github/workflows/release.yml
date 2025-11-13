@@ -8,6 +8,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      MONGO_DB: ${{ secrets.MONGO_DB }}
+      DB_PATH: ${{ vars.DB_PATH }}
+      SYNC_INTERVAL: ${{ vars.SYNC_INTERVAL }}
+      TRACKING_INTERVAL: ${{ vars.TRACKING_INTERVAL }}
 
     steps:
       - uses: actions/checkout@v4

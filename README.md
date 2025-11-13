@@ -55,3 +55,7 @@ watchmedo auto-restart --patterns="*.py" --recursive python main.py
 ```bash
 pyinstaller -w -F --add-data ".env:." --name "AgentTracker" main.py
 ```
+
+## GitHub
+
+https://github.com/codevember-team5/agent-tracker

@@ -83,12 +83,12 @@ class ActivityTracker:
                 process_name, window_title = WindowDetector.get_active_window()
 
                 # Ignora processi blacklist
-                if process_name in self.config.PROCESS_BLACKLIST:
+                if process_name in self.config.PROCESS_BLACKLIST or not window_title:
                     time.sleep(self.config.TRACKING_INTERVAL)
                     continue
 
                 # Traccia solo se cambiato
-                if (
+                if window_title and (
                     window_title != self._last_window
                     or process_name != self._last_process
                 ):
