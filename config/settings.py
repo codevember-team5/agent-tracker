@@ -49,9 +49,8 @@ class Config:
             "Activity Monitor",
             "AgentTracker",
             "Electron",
-            "Python",
+            "python",
         ]
-        self.IGNORED_PROCESSES = ["[PAUSE]", "[RESUME]"]
 
         # Validation
         if not self.MONGO_URI:

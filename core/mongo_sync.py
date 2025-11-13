@@ -29,6 +29,8 @@ class MongoSyncManager:
                 {
                     "$setOnInsert": {
                         "device_id": self.config.DEVICE_ID,
+                        "system": self.config.SYSTEM,
+                        "device_name": self.config.DEVICE_NAME,
                         "user_id": None,
                     }
                 },
@@ -51,8 +53,6 @@ class MongoSyncManager:
                 "cpu_percent": r[4],
                 "device_id": r[6],
                 "username": r[7],
-                "system": self.config.SYSTEM,
-                "device_name": self.config.DEVICE_NAME,
             }
             for r in records
         ]
@@ -63,6 +63,9 @@ class MongoSyncManager:
         # Aggiorna tabella processi
         for doc in docs:
             try:
+                if doc["process"] in self.config.PROCESS_BLACKLIST:
+                    continue
+
                 self.db[self.config.PROCESS_WINDOW_TABLE].update_one(
                     {
                         "device_id": doc["device_id"],

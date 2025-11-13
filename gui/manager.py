@@ -26,7 +26,7 @@ class GUIManager:
         """Crea la finestra principale"""
         self.root = tk.Tk()
         self.root.title("Livelli di attenzione")
-        self.root.geometry("640x480")
+        self.root.geometry("640x640")
         self.root.configure(bg="white")
 
         # Intestazioni
@@ -47,15 +47,19 @@ class GUIManager:
         ).grid(row=0, column=2, padx=10, pady=5, sticky="e")
 
         # Carica applicazioni
-        apps = self.mongo_manager.get_process_windows()
-        for i, app in enumerate(apps, start=1):
-            if app["process"] not in self.config.PROCESS_BLACKLIST:
-                self._add_process_row(i, app)
+        self._load_apps()
 
         # Avvia aggiornamento indicatori
         self._update_active_indicator()
 
         return self.root
+
+    def _load_apps(self):
+        apps = self.mongo_manager.get_process_windows()
+        print(f"[UI] Caricato {len(apps)} processi.")
+        for i, app in enumerate(apps, start=1):
+            if app["process"] not in self.config.PROCESS_BLACKLIST:
+                self._add_process_row(i, app)
 
     def _add_process_row(self, row: int, app: Dict):
         """Aggiunge una riga per un processo"""

@@ -1,11 +1,11 @@
 """Rilevamento finestra attiva cross-platform"""
 
-import os
 import re
 import platform
 import subprocess
 from typing import Tuple, Optional
 import psutil
+from urllib.parse import urlparse
 
 
 class WindowDetector:
@@ -33,18 +33,19 @@ class WindowDetector:
         try:
             script = """
                 tell application "System Events"
-                    set frontApp to name of (first application process whose frontmost is true)
-                    return frontApp
+                    set frontApp to first application process whose frontmost is true
+                    set bundleID to bundle identifier of frontApp
+                    return bundleID
                 end tell
             """
             result = subprocess.check_output(["osascript", "-e", script])
-            app_name = result.decode("utf-8").strip()
+            app_name = WindowDetector.normalize_app_name(result.decode("utf-8").strip())
             window_title = app_name
 
             # Gestione browser
-            browsers = ["Google Chrome", "Safari", "Firefox", "Brave Browser"]
-            if app_name in browsers:
-                url = WindowDetector._get_browser_url(app_name)
+            browsers = ["Chrome", "Safari", "Firefox", "Brave"]
+            if window_title in browsers:
+                url = WindowDetector._get_browser_url(window_title)
                 if url:
                     match = re.search(r"https?://([a-zA-Z0-9.-]+)", url)
                     window_title = match.group(1) if match else url
@@ -54,10 +55,20 @@ class WindowDetector:
         return app_name, window_title
 
     @staticmethod
+    def normalize_app_name(raw: str) -> str:
+        """Restituisce un nome leggibile da bundle ID o nome processo"""
+        if "." in raw:  # es: com.microsoft.VSCode
+            name = raw.split(".")[-1]
+            # Se è camelCase o PascalCase → aggiunge spazi
+            name = re.sub(r"([a-z])([A-Z])", r"\1 \2", name).strip()
+            return name
+        return raw.strip()
+
+    @staticmethod
     def _get_browser_url(browser_name: str) -> Optional[str]:
         """Estrae l'URL dal browser su macOS"""
         scripts = {
-            "Google Chrome": 'tell application "Google Chrome" to return URL of '
+            "Chrome": 'tell application "Google Chrome" to return URL of '
             "active tab of front window",
             "Safari": 'tell application "Safari" to return URL of '
             "current tab of front window",
@@ -73,7 +84,20 @@ class WindowDetector:
                 .decode()
                 .strip()
             )
-            return url if url else None
+            return WindowDetector._get_domain(url) if url else None
+        except Exception:
+            return None
+
+    @staticmethod
+    def _get_domain(url: str) -> str | None:
+        try:
+            # Estrae il dominio
+            hostname = urlparse(url).hostname
+            if not hostname or "." not in hostname:
+                return None
+            # Prende solo dominio di secondo e primo livello
+            parts = hostname.split(".")
+            return ".".join(parts[-2:]) if len(parts) >= 2 else None
         except Exception:
             return None
 
@@ -85,15 +109,29 @@ class WindowDetector:
             import win32process  # type: ignore
 
             hwnd = win32gui.GetForegroundWindow()
+            if not hwnd:
+                return "unknown", "Unknown"
+
             _, pid = win32process.GetWindowThreadProcessId(hwnd)
             proc = psutil.Process(pid)
-            window_title = win32gui.GetWindowText(hwnd)
 
-            match = re.search(r"https?://([a-zA-Z0-9.-]+)", window_title)
-            if match:
-                window_title = match.group(1)
+            # Nome app
+            app_name = proc.name().replace(".exe", "")
 
-            return proc.name(), window_title or proc.name()
+            # Titolo finestra
+            window_title = win32gui.GetWindowText(hwnd).strip() or "Unknown"
+            app_name = WindowDetector.normalize_app_name(window_title)
+            window_title = app_name
+
+            # Se è un browser, prova a estrarre dominio
+            browsers = ["chrome", "msedge", "firefox", "brave"]
+            if any(b in app_name.lower() for b in browsers):
+                match = re.search(r"https?://([a-zA-Z0-9.-]+)", window_title)
+                if match:
+                    window_title = match.group(1)
+
+            return app_name, window_title
+
         except Exception as e:
             print(f"[WARN] Windows detection failed: {e}")
             return "unknown", "Unknown"
@@ -102,22 +140,51 @@ class WindowDetector:
     def _get_linux_window() -> Tuple[str, str]:
         """Rileva finestra attiva su Linux"""
         try:
-            title = (
+            # Ottiene ID finestra attiva
+            win_id = (
                 subprocess.check_output(
-                    ["xdotool", "getwindowfocus", "getwindowname"],
-                    stderr=subprocess.DEVNULL,
+                    ["xdotool", "getwindowfocus"], stderr=subprocess.DEVNULL
                 )
                 .decode()
                 .strip()
             )
 
-            if not title:
-                title = "Unknown"
+            # Nome finestra (titolo)
+            window_title = (
+                subprocess.check_output(
+                    ["xdotool", "getwindowname", win_id], stderr=subprocess.DEVNULL
+                )
+                .decode()
+                .strip()
+            )
+            window_title = WindowDetector.normalize_app_name(window_title)
 
-            match = re.search(r"https?://([a-zA-Z0-9.-]+)", title)
-            if match:
-                title = match.group(1)
+            # Nome app
+            app_name = (
+                subprocess.check_output(
+                    ["xprop", "-id", win_id, "WM_CLASS"], stderr=subprocess.DEVNULL
+                )
+                .decode()
+                .strip()
+            )
+            app_name = WindowDetector.normalize_app_name(app_name)
 
-            return "unknown", title
-        except Exception:
+            # xprop ritorna tipo: WM_CLASS(STRING) = "code", "Code"
+            match = re.search(r'"([^"]+)",\s*"([^"]+)"', app_name)
+            app_name = match.group(2) if match else "unknown"
+
+            if not window_title:
+                window_title = "Unknown"
+
+            # Gestione browser: se è Chrome/Firefox/Brave, estrai dominio
+            browsers = ["Chrome", "Firefox", "Brave", "Chromium"]
+            if any(b.lower() in app_name.lower() for b in browsers):
+                match = re.search(r"https?://([a-zA-Z0-9.-]+)", window_title)
+                if match:
+                    window_title = match.group(1)
+
+            return app_name, window_title
+
+        except Exception as e:
+            print(f"[WARN] Linux detection failed: {e}")
             return "unknown", "Unknown"

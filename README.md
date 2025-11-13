@@ -36,6 +36,12 @@ TRACKING_INTERVAL=60
 python main.py
 ```
 
+Con Watcher:
+
+```bash
+watchmedo auto-restart --patterns="*.py" --recursive python main.py
+```
+
 ## Struttura
 
 - `config/` - Configurazione

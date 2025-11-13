@@ -1,7 +1,5 @@
 """Logica di tracking attività utente"""
 
-import os
-import re
 import time
 import psutil
 from pynput import mouse, keyboard
@@ -58,6 +56,7 @@ class ActivityTracker:
                 self.config.DEVICE_ID,
                 self.config.USERNAME,
             )
+
             print(f"[TRACK] {process_name} - {window_title}")
         except Exception as e:
             print(f"[TRACK ERROR] {e}")
@@ -82,8 +81,6 @@ class ActivityTracker:
 
                 # Rileva finestra attiva
                 process_name, window_title = WindowDetector.get_active_window()
-                process_name = os.path.basename(process_name)
-                process_name = re.sub(r"\.app$", "", process_name, flags=re.IGNORECASE)
 
                 # Ignora processi blacklist
                 if process_name in self.config.PROCESS_BLACKLIST:
