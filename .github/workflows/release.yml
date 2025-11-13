@@ -26,7 +26,7 @@ jobs:
         run: pip install -r requirements.txt && pip install pyinstaller
 
       - name: Build binary
-        run: pyinstaller -w -F --add-data ".env:." --name "AgentTracker" main.py
+        run: pyinstaller -w -F --name "AgentTracker" main.py
 
       - name: Upload release
         uses: softprops/action-gh-release@v1
