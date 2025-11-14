@@ -3,6 +3,7 @@
 import pymongo
 from typing import List, Tuple, Dict
 from config.settings import Config
+from datetime import datetime, timezone
 from pymongo import ReturnDocument
 from pymongo import DESCENDING
 
@@ -43,15 +44,31 @@ class MongoSyncManager:
         except Exception as e:
             print(f"[DEVICE SYNC ERROR] {e}")
 
+    def close_last_open_activity(self, stop_time):
+        last_open = self.db[self.config.ACTIVITY_LOGS_TABLE].find_one(
+            {"stop_time": None}, sort=[("start_time", -1)]
+        )
+
+        if last_open:
+            self.db[self.config.ACTIVITY_LOGS_TABLE].update_one(
+                {"_id": last_open["_id"]},
+                {"$set": {"stop_time": stop_time}},
+            )
+
     def sync_activities(self, records: List[Tuple]):
         """Sincronizza i record di attività"""
         if not records:
             return
 
+        def parse_ts(ts: str | None):
+            if ts is None:
+                return None
+            return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+
         docs = [
             {
-                "start_time": r[1],
-                "stop_time": r[2],
+                "start_time": parse_ts(r[1]),
+                "stop_time": parse_ts(r[2]),
                 "process": r[3],
                 "window_title": r[4],
                 "cpu_percent": r[5],
@@ -60,6 +77,9 @@ class MongoSyncManager:
             }
             for r in records
         ]
+
+        # Chiudi ultima attività aperta
+        self.close_last_open_activity(docs[0]["start_time"])
 
         # Inserisci attività
         self.db[self.config.ACTIVITY_LOGS_TABLE].insert_many(docs)

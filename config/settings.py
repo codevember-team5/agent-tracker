@@ -46,6 +46,7 @@ class Config:
             "[RESUME]",
             "unknown",
             "Finder",
+            "finder",
             "Activity Monitor",
             "AgentTracker",
             "Electron",
