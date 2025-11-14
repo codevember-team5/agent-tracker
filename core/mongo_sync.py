@@ -46,7 +46,8 @@ class MongoSyncManager:
 
     def close_last_open_activity(self, stop_time):
         last_open = self.db[self.config.ACTIVITY_LOGS_TABLE].find_one(
-            {"stop_time": None}, sort=[("start_time", -1)]
+            {"stop_time": None, "device_id": self.config.DEVICE_ID},
+            sort=[("start_time", -1)],
         )
 
         if last_open:
