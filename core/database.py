@@ -20,7 +20,8 @@ class DatabaseManager:
             """
             CREATE TABLE IF NOT EXISTS activity (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
+                start_time TIMESTAMP,
+                stop_time TIMESTAMP,
                 process TEXT,
                 window_title TEXT,
                 cpu_percent REAL,
@@ -44,16 +45,39 @@ class DatabaseManager:
         """Inserisce un nuovo record di attività"""
         conn = sqlite3.connect(self.db_path)
         cur = conn.cursor()
-        timestamp = datetime.now(timezone.utc).isoformat()
+        start_time = datetime.now(timezone.utc).isoformat()  # TEMP
+        cur.execute(
+            """
+            UPDATE activity
+            SET stop_time = ?
+            WHERE id = (
+                SELECT id FROM activity
+                WHERE synced = 0 AND stop_time IS NULL
+                ORDER BY start_time DESC
+                LIMIT 1
+            )
+            """,
+            (start_time,),
+        )
 
         try:
             cur.execute(
                 """
-                INSERT INTO activity (timestamp, process, window_title, 
-                                    cpu_percent, synced, device_id, username)
-                VALUES (?, ?, ?, ?, 0, ?, ?)
-            """,
-                (timestamp, process, window_title, cpu_percent, device_id, username),
+                    INSERT INTO activity (
+                        start_time, stop_time, process, window_title,
+                        cpu_percent, synced, device_id, username
+                    )
+                    VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+                """,
+                (
+                    start_time,
+                    None,
+                    process,
+                    window_title,
+                    cpu_percent,
+                    device_id,
+                    username,
+                ),
             )
             conn.commit()
         finally:

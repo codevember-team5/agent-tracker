@@ -48,11 +48,10 @@ class ActivityTracker:
     def track_event(self, process_name: str, window_title: str):
         """Registra un evento di attività"""
         try:
-            cpu_percent = psutil.cpu_percent(interval=None)
             self.db_manager.insert_activity(
                 process_name,
                 window_title,
-                cpu_percent,
+                psutil.cpu_percent(interval=None),
                 self.config.DEVICE_ID,
                 self.config.USERNAME,
             )

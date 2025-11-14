@@ -4,6 +4,7 @@ import pymongo
 from typing import List, Tuple, Dict
 from config.settings import Config
 from pymongo import ReturnDocument
+from pymongo import DESCENDING
 
 
 class MongoSyncManager:
@@ -49,12 +50,13 @@ class MongoSyncManager:
 
         docs = [
             {
-                "timestamp": r[1],
-                "process": r[2],
-                "window_title": r[3],
-                "cpu_percent": r[4],
-                "device_id": r[6],
-                "username": r[7],
+                "start_time": r[1],
+                "stop_time": r[2],
+                "process": r[3],
+                "window_title": r[4],
+                "cpu_percent": r[5],
+                "device_id": r[7],
+                "username": r[8],
             }
             for r in records
         ]
